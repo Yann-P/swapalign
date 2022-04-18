@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { Card, Deck } from "./types";
+import { Card, Deck, JSONGameState } from "./types";
 import { Board } from "./board";
 import { Player } from "./player";
 
@@ -10,7 +10,9 @@ export class Game {
 
   private deck: Deck;
 
-  private turn: number = 0;
+  private turn: number = -1;
+
+  private isLastRound = false;
 
   private phase: "REVEAL" | "PLAY" = "REVEAL";
 
@@ -25,9 +27,9 @@ export class Game {
 
   private generateDeck(): Deck {
     const deck: Deck = { cards: [] };
-    // for (let i = 1; i <= 12; i++) {
-    //   deck.cards.push(...Array(10).fill({ value: i }));
-    // }
+    for (let i = 1; i <= 12; i++) {
+      deck.cards.push(...Array(10).fill({ value: i }));
+    }
     deck.cards.push(...Array(10).fill({ value: -1 }));
     deck.cards.push(...Array(15).fill({ value: 0 }));
     deck.cards.push(...Array(5).fill({ value: -2 }));
@@ -38,14 +40,7 @@ export class Game {
   }
 
   private replenishDiscardPile() {
-    console.log("replenishDiscardPile");
-    const cardFromDeck = this.deck.cards.shift();
-    if (cardFromDeck === undefined) {
-      throw new Error(
-        `Cannot replenish discard pile because the deck is empty`
-      );
-    }
-    this.discardPile.push(cardFromDeck);
+    this.discardPile.push(this.deck.cards.shift()!);
   }
 
   initWithPlayers(playerNames: string[]) {
@@ -59,7 +54,8 @@ export class Game {
 
   print(): string {
     let res = "";
-    res += "turn : " + this.currentPlayer.name;
+    if (this.currentPlayer !== undefined)
+      res += "turn : " + this.currentPlayer.name;
     res += "\n";
     res += "discard pile : " + this.discardPile[0]?.value ?? "empty";
     res += "\n";
@@ -69,6 +65,36 @@ export class Game {
       .join("\n");
 
     return res;
+  }
+
+  toJSON(): JSONGameState {
+    return {
+      discardSize: this.discardPile.length,
+      discard: this.discardPile[0]?.value ?? null,
+      turn: this.currentPlayer?.name,
+      boards: _.mapValues(
+        _.keyBy(
+          Array.from(this.players).map(([_, player]) => ({
+            name: player.name,
+            board: player.getBoardJSON(),
+          })),
+          "name"
+        ),
+        (v) => v.board
+      ),
+      drawSize: this.deck.cards.length,
+      phase: this.phase,
+      hands: _.mapValues(
+        _.keyBy(
+          Array.from(this.players).map(([_, player]) => ({
+            name: player.name,
+            hand: player.getHoldedCard() ?? null,
+          })),
+          "name"
+        ),
+        (v) => v.hand
+      ),
+    };
   }
 
   private getCardForTurn(useDiscardPile: boolean): Card {
@@ -83,21 +109,34 @@ export class Game {
   }
 
   playerDrawCard(player: Player, useDiscardPile: boolean) {
+    if (player.isHoldingCard()) {
+      return;
+    }
     const card = this.getCardForTurn(useDiscardPile);
-    player.drawCard(card);
+    player.setHoldedCard(card);
   }
 
   currentPlayerDrawCard(useDiscardPile: boolean) {
+    if (this.currentPlayer === undefined) return;
     this.playerDrawCard(this.currentPlayer, useDiscardPile);
   }
 
-  playerDiscardCardAndReveal(player: Player, row: number, col: number) {
-    player.discardCardAndReveal(row, col, this.cardDiscarder);
-    this.turn++;
+  playerDiscardCard(player: Player) {
+    player.discardCard(this.cardDiscarder);
   }
 
-  currentPlayerDiscardCardAndReveal(row: number, col: number) {
-    this.playerDiscardCardAndReveal(this.currentPlayer, row, col);
+  currentPlayerDiscardCard() {
+    if (this.currentPlayer === undefined) return;
+    this.playerDiscardCard(this.currentPlayer);
+  }
+
+  currentPlayerUseDiscard() {
+    if (this.currentPlayer === undefined) return;
+    if (this.currentPlayer.isHoldingCard()) {
+      this.currentPlayer.discardCard(this.cardDiscarder);
+    } else {
+      this.currentPlayerDrawCard(true);
+    }
   }
 
   playerSwapCard(player: Player, row: number, col: number) {
@@ -106,23 +145,47 @@ export class Game {
   }
 
   currentPlayerSwapCard(row: number, col: number) {
+    if (this.currentPlayer === undefined) return;
     this.playerSwapCard(this.currentPlayer, row, col);
   }
 
   playerRevealCard(name: string, row: number, col: number) {
     const player = this.players.get(name)!;
-    if (!player.canRevealCard()) {
+    const playerMustReveal = player.mustRevealCard();
+    if (!player.canRevealCard() && !playerMustReveal) {
       return;
     }
-    player.revealCard(row, col);
-    if (this.hasEveryPlayerRevealedCards()) {
-      this.phase = "PLAY";
+    const success = player.revealCard(row, col);
+
+    if (!success) {
+      return;
+    }
+
+    if (playerMustReveal) {
+      this.turn++;
+    }
+
+    if (this.phase === "REVEAL" && this.hasEveryPlayerRevealedCards()) {
       const startingPlayerName = this.getStartingPlayer();
       const indexOfStartingPlayer = this.playersAsArray.findIndex(
         (player) => player.name === startingPlayerName
       );
+      this.phase = "PLAY";
       this.turn = indexOfStartingPlayer;
       console.log("set turn " + this.turn + startingPlayerName);
+    }
+  }
+
+  playerClickCard(name: string, row: number, col: number) {
+    const player = this.players.get(name)!;
+    if (this.phase === "REVEAL") {
+      this.playerRevealCard(name, row, col);
+    } else if (player.mustRevealCard()) {
+      console.log("must reveal, placing");
+      this.playerRevealCard(name, row, col);
+    } else if (player.isHoldingCard()) {
+      console.log("holding, swapping");
+      this.currentPlayerSwapCard(row, col);
     }
   }
 
@@ -149,7 +212,10 @@ export class Game {
     return players.every((player) => !player.canRevealCard());
   }
 
-  get currentPlayer(): Player {
+  get currentPlayer(): Player | undefined {
+    if (this.turn === -1) {
+      return undefined;
+    }
     return Array.from(this.players)[this.turn % this.players.size][1];
   }
 }

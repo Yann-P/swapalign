@@ -4,29 +4,28 @@ import { Card, Deck } from "./types";
 export interface CardOnBoard {
   card: Card;
   visible: boolean;
-  row: number;
-  col: number;
 }
 
 export class Board {
-  private cards: CardOnBoard[] = [];
+  private cards: CardOnBoard[][] = [];
 
-  revealCard(row: number, col: number) {
+  revealCard(row: number, col: number): boolean {
+    const card = this.cardAt(row, col);
+    if (card.visible) {
+      return false;
+    }
     this.cardAt(row, col).visible = true;
     this.removeColumnIfComplete(col);
+    return true;
   }
 
   removeColumnIfComplete(col: number) {
     if (this.isColumnComplete(col)) {
-      const removed = _.remove(
-        this.cards,
-        (cardOnBoard) => cardOnBoard.col === col
-      );
-      console.log("removed", removed);
+      this.cards.splice(col, 1);
     }
   }
 
-  isColumnComplete(col: number) {
+  private isColumnComplete(col: number) {
     console.log(JSON.stringify([0, 1, 2].map((row) => this.cardAt(row, col))));
     return [0, 1, 2]
       .map((row) => this.cardAt(row, col))
@@ -37,11 +36,12 @@ export class Board {
       );
   }
 
-  swapCard(card: Card, row: number, col: number): Card {
+  swapCard(card: Readonly<Card>, row: number, col: number): Card {
+    console.log("swapcard", card, row, col);
     let cardOnBoard = this.cardAt(row, col);
-    const cardToDiscard = { ...cardOnBoard.card };
+    const cardToDiscard = cardOnBoard.card;
 
-    cardOnBoard.card.value = card.value;
+    cardOnBoard.card = card;
     cardOnBoard.visible = true;
 
     this.removeColumnIfComplete(col);
@@ -50,9 +50,7 @@ export class Board {
   }
 
   private cardAt(row: number, col: number) {
-    const card = this.cards.find(
-      (card) => card.row === row && card.col === col
-    );
+    const card = this.cards[col][row];
     if (!card) {
       throw new Error(`cardAt(${row}, ${col}) empty`);
     }
@@ -61,14 +59,13 @@ export class Board {
 
   static generateBoardFromDeck(deck: Deck): Board {
     const board = new Board();
-    for (let row = 0; row <= 2; row++) {
-      for (let col = 0; col <= 3; col++) {
-        board.cards.push({
+    for (let col = 0; col <= 3; col++) {
+      board.cards[col] = [];
+      for (let row = 0; row <= 2; row++) {
+        board.cards[col][row] = {
           card: deck.cards.shift()!,
-          col,
-          row,
           visible: false,
-        });
+        };
       }
     }
     return board;
@@ -79,9 +76,7 @@ export class Board {
     for (let row = 0; row <= 2; row++) {
       res += [0, 1, 2, 3]
         .map((col) => {
-          const cardOnBoard = this.cards.find(
-            (card) => card.row === row && card.col === col
-          );
+          const cardOnBoard = this.cards[col]?.[row];
           if (!cardOnBoard) {
             return;
           }
@@ -95,8 +90,14 @@ export class Board {
     return res;
   }
 
+  toJSON(): (number | null)[][] {
+    return this.cards.map((col) =>
+      col.map((row) => (row.visible ? row.card.value : null))
+    );
+  }
+
   getSumOfRevealedCards(): number {
-    return this.cards
+    return _.flatten(this.cards)
       .filter((cardOnBoard) => cardOnBoard.visible)
       .reduce((acc, cardOnBoard) => {
         return acc + cardOnBoard.card.value;

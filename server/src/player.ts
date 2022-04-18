@@ -2,13 +2,27 @@ import { Board } from "./board";
 import { Card } from "./types";
 
 export class Player {
-  public holdingCard: Card | undefined = undefined;
+  private holdingCard: Card | undefined = undefined;
+
+  private mustReveal = false;
 
   private revealedCards = 0;
 
   constructor(public readonly name: string, private board: Board) {}
 
-  drawCard(card: Card) {
+  isHoldingCard(): boolean {
+    return this.holdingCard !== undefined;
+  }
+
+  getHoldedCard(): number | undefined {
+    return this.holdingCard?.value;
+  }
+
+  mustRevealCard(): boolean {
+    return this.mustReveal;
+  }
+
+  setHoldedCard(card: Card) {
     this.holdingCard = card;
   }
 
@@ -16,17 +30,13 @@ export class Player {
     return this.revealedCards < 2;
   }
 
-  discardCardAndReveal(
-    row: number,
-    col: number,
-    discardCard: (card: Card) => void
-  ) {
+  discardCard(discardCard: (card: Card) => void) {
     if (!this.holdingCard) {
-      throw new Error(`discardCardAndReveal: must be holding a card`);
+      throw new Error(`discardCard: must be holding a card`);
     }
     discardCard(this.holdingCard);
+    this.mustReveal = true;
     this.holdingCard = undefined;
-    this.board.revealCard(row, col);
   }
 
   swapCard(row: number, col: number, discardCard: (card: Card) => void) {
@@ -38,9 +48,17 @@ export class Player {
     discardCard(cardToDiscard);
   }
 
-  revealCard(row: number, col: number) {
-    this.board.revealCard(row, col);
-    this.revealedCards++;
+  revealCard(row: number, col: number): boolean {
+    const success = this.board.revealCard(row, col);
+    if (!success) {
+      return false;
+    }
+    if (this.mustReveal) {
+      this.mustReveal = false;
+    } else {
+      this.revealedCards++;
+    }
+    return true;
   }
 
   getSumOfRevealedCards() {
@@ -51,5 +69,9 @@ export class Player {
     return `${this.name} (holding ${this.holdingCard?.value ?? "no card"})
 ${this.board.print()}
     `;
+  }
+
+  getBoardJSON() {
+    return this.board.toJSON();
   }
 }

@@ -1,12 +1,14 @@
 import inquirer from "inquirer";
 import _ from "lodash";
 import { Game } from "./game";
+require("./server");
 
 console.log("start");
 
+export const game = new Game();
+
 (async () => {
-  const game = new Game();
-  game.initWithPlayers(["a"]); //, "b"]);
+  game.initWithPlayers(["a", "b"]);
   console.log(game.print());
 
   while (true) {
@@ -24,10 +26,7 @@ console.log("start");
         game.currentPlayerDrawCard(false);
         break;
       case "di":
-        game.currentPlayerDrawCard(true);
-        break;
-      case "th":
-        game.currentPlayerDiscardCardAndReveal(+params[0], +params[1]);
+        game.currentPlayerUseDiscard();
         break;
       case "sw":
         game.currentPlayerSwapCard(+params[0], +params[1]);
@@ -37,5 +36,6 @@ console.log("start");
       default:
     }
     console.log(game.print());
+    //console.log(JSON.stringify(game.toJSON(), null, 2));
   }
 })().catch(console.error);
