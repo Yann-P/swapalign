@@ -7,11 +7,13 @@ export interface Deck {
 }
 
 export interface JSONGameState {
-  phase: "REVEAL" | "PLAY";
+  phase: "REVEAL" | "PLAY" | "END";
   turn: string | undefined;
   boards: { [name: string]: (number | null)[][] };
   hands: { [name: string]: number | null };
   discardSize: number;
   discard: number | undefined;
   drawSize: number;
+  lastRoundTurn: number;
+  scores: { [name: string]: number };
 }

@@ -1,6 +1,6 @@
 import { game } from ".";
 
-const fastify = require("fastify")({ logger: false });
+const fastify = require("fastify")({ logger: true });
 
 fastify.get("/state", async (request: any, reply: any) => {
   reply.header("Access-Control-Allow-Origin", "*");
@@ -31,7 +31,7 @@ fastify.get("/discard", async (request: any, reply: any) => {
 
 const start = async () => {
   try {
-    await fastify.listen(3000, "0.0.0.0");
+    await fastify.listen(4000, "0.0.0.0");
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

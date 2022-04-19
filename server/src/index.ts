@@ -1,11 +1,16 @@
 import inquirer from "inquirer";
 import _ from "lodash";
+import { eventToText, GameEvent } from "./event";
 import { Game } from "./game";
 require("./server");
 
 console.log("start");
 
-export const game = new Game();
+const events: { name: GameEvent; data: any }[] = [];
+function eventCollector<T>(name: GameEvent, data: T) {
+  events.push({ name, data });
+}
+export const game = new Game(eventCollector);
 
 (async () => {
   game.initWithPlayers(["a", "b"]);
@@ -20,7 +25,7 @@ export const game = new Game();
 
     switch (action) {
       case "r":
-        game.playerRevealCard(params[0], +params[1], +params[2]);
+        game.playerClickCard(params[0], +params[1], +params[2]);
         break;
       case "dr":
         game.currentPlayerDrawCard(false);
@@ -28,13 +33,11 @@ export const game = new Game();
       case "di":
         game.currentPlayerUseDiscard();
         break;
-      case "sw":
-        game.currentPlayerSwapCard(+params[0], +params[1]);
-        break;
       case "q":
         return;
       default:
     }
+    console.log(events.map((e) => eventToText(e.name, e.data)));
     console.log(game.print());
     //console.log(JSON.stringify(game.toJSON(), null, 2));
   }

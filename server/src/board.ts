@@ -9,14 +9,26 @@ export interface CardOnBoard {
 export class Board {
   private cards: CardOnBoard[][] = [];
 
-  revealCard(row: number, col: number): boolean {
+  revealCard(row: number, col: number): { success: boolean; value?: number } {
     const card = this.cardAt(row, col);
     if (card.visible) {
-      return false;
+      return { success: false };
     }
-    this.cardAt(row, col).visible = true;
+    const value = card.card.value;
+    card.visible = true;
+    //this.cardAt(row, col).visible = true;
     this.removeColumnIfComplete(col);
-    return true;
+    return { success: true, value };
+  }
+
+  revealAllCards() {
+    this.cards.forEach((rows, col) =>
+      rows.forEach((card, row) => this.revealCard(row, col))
+    );
+  }
+
+  hasRevealedAllCards(): boolean {
+    return this.cards.every((col) => col.every((card) => card.visible));
   }
 
   removeColumnIfComplete(col: number) {
@@ -25,7 +37,7 @@ export class Board {
     }
   }
 
-  private isColumnComplete(col: number) {
+  private isColumnComplete(col: number): boolean {
     console.log(JSON.stringify([0, 1, 2].map((row) => this.cardAt(row, col))));
     return [0, 1, 2]
       .map((row) => this.cardAt(row, col))
@@ -59,7 +71,7 @@ export class Board {
 
   static generateBoardFromDeck(deck: Deck): Board {
     const board = new Board();
-    for (let col = 0; col <= 3; col++) {
+    for (let col = 0; col <= 1 /*3*/; col++) {
       board.cards[col] = [];
       for (let row = 0; row <= 2; row++) {
         board.cards[col][row] = {

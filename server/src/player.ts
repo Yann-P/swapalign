@@ -30,35 +30,55 @@ export class Player {
     return this.revealedCards < 2;
   }
 
-  discardCard(discardCard: (card: Card) => void) {
+  hasRevealedAllCards(): boolean {
+    return this.board.hasRevealedAllCards();
+  }
+
+  discardHoldedCard(discardCard: (card: Card) => void): number {
     if (!this.holdingCard) {
       throw new Error(`discardCard: must be holding a card`);
     }
+    const value = this.holdingCard.value;
     discardCard(this.holdingCard);
     this.mustReveal = true;
     this.holdingCard = undefined;
+    return value;
   }
 
-  swapCard(row: number, col: number, discardCard: (card: Card) => void) {
+  swapCard(
+    row: number,
+    col: number,
+    discardCard: (card: Card) => void
+  ): { newCardValue: number; discardedCardValue: number } {
     if (!this.holdingCard) {
       throw new Error("Cannot swap card as this player holds no card");
     }
+    const newCardValue = this.holdingCard.value;
     const cardToDiscard = this.board.swapCard(this.holdingCard, row, col);
+    const discardedCardValue = cardToDiscard.value;
     this.holdingCard = undefined;
     discardCard(cardToDiscard);
+    return {
+      newCardValue,
+      discardedCardValue,
+    };
   }
 
-  revealCard(row: number, col: number): boolean {
-    const success = this.board.revealCard(row, col);
+  revealCard(row: number, col: number): { success: boolean; value?: number } {
+    const { success, value } = this.board.revealCard(row, col);
     if (!success) {
-      return false;
+      return { success: false };
     }
     if (this.mustReveal) {
       this.mustReveal = false;
     } else {
       this.revealedCards++;
     }
-    return true;
+    return { success, value };
+  }
+
+  revealAllCards() {
+    this.board.revealAllCards();
   }
 
   getSumOfRevealedCards() {

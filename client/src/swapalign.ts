@@ -1,16 +1,18 @@
 import { cardColor } from "./util";
 
 type JSONGameState = {
-  phase: "REVEAL" | "PLAY";
+  phase: "REVEAL" | "PLAY" | "END";
   turn: string | undefined;
   boards: { [name: string]: (number | null)[][] };
   hands: { [name: string]: number | null };
   discardSize: number;
   discard: number | undefined;
   drawSize: number;
+  lastRoundTurn: number;
+  scores: { [name: string]: number };
 };
 
-const BASEURL = "http://192.168.0.9:3000";
+const BASEURL = "http://localhost:4000";
 
 function transpose<T>(array: T[][]) {
   return array[0].map((_, colIndex) => array.map((row) => row[colIndex]));
@@ -48,11 +50,7 @@ function genBoard(board: (number | null)[][]): string {
 function renderState(state: JSONGameState) {
   document.getElementById("game").innerHTML = `
 
-        <h1>${
-          state.phase === "REVEAL"
-            ? "Retournez 2 cartes !"
-            : `À ${state.turn} de jouer`
-        }</h1>
+        <h1>${state.phase} - ${state.turn}/${state.lastRoundTurn}</h1>
 
         <table>
         <tr>
@@ -82,7 +80,7 @@ function renderState(state: JSONGameState) {
             <div>
                     <h2 style="height:50px;${
                       state.turn === name ? "color: red;" : ""
-                    }">${name} ${
+                    }">${name} (${state.scores[name] ?? "-"} pts) ${
                 state.hands[name] !== null
                   ? `
                         <div class="card" style="display: inline-block;background: ${cardColor(
@@ -116,12 +114,7 @@ async function sendDiscardAction() {
   await fetch(BASEURL + `/discard`);
 }
 
-async function sendDiscardRevealAction(row: string, col: string) {
-  await fetch(BASEURL + `/discard-reveal/${row}/${col}`);
-}
-
 (async () => {
-  const cardClickListeners = [];
   let state: JSONGameState;
 
   while (true) {
@@ -135,9 +128,6 @@ async function sendDiscardRevealAction(row: string, col: string) {
           card.getAttribute("data-col"),
           card.closest(".board").getAttribute("data-name"),
         ];
-
-        console.log("click", row, col, name);
-
         sendCardAction(name, row, col).catch(console.error);
       });
     });
@@ -151,6 +141,5 @@ async function sendDiscardRevealAction(row: string, col: string) {
     });
 
     await new Promise((res) => setTimeout(res, 200));
-    //break;
   }
 })().catch(console.error);
