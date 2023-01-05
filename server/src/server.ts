@@ -1,6 +1,6 @@
 import { game } from ".";
 
-const fastify = require("fastify")({ logger: true });
+const fastify = require("fastify")({ logger: false });
 
 fastify.get("/state", async (request: any, reply: any) => {
   reply.header("Access-Control-Allow-Origin", "*");

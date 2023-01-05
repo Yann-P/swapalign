@@ -71,7 +71,7 @@ export class Board {
 
   static generateBoardFromDeck(deck: Deck): Board {
     const board = new Board();
-    for (let col = 0; col <= 1 /*3*/; col++) {
+    for (let col = 0; col <= 3; col++) {
       board.cards[col] = [];
       for (let row = 0; row <= 2; row++) {
         board.cards[col][row] = {
@@ -85,7 +85,7 @@ export class Board {
 
   print(): string {
     let res = "";
-    for (let row = 0; row <= 2; row++) {
+    for (let row = 0; row <= 3; row++) {
       res += [0, 1, 2, 3]
         .map((col) => {
           const cardOnBoard = this.cards[col]?.[row];
