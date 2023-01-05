@@ -1,6 +1,6 @@
 import { cardColor } from "./util";
 
-type JSONGameState = {
+export interface JSONGameState {
   phase: "REVEAL" | "PLAY" | "END";
   turn: string | undefined;
   boards: { [name: string]: (number | null)[][] };
@@ -10,7 +10,8 @@ type JSONGameState = {
   drawSize: number;
   lastRoundTurn: number;
   scores: { [name: string]: number };
-};
+  events: [string, number][];
+}
 
 const BASEURL = "http://localhost:4000";
 
@@ -77,7 +78,7 @@ function renderState(state: JSONGameState) {
           .map(
             (name) =>
               `
-            <div>
+            <div style='padding: 10px; margin: 10px; background: #eee'>
                     <h2 style="height:50px;${
                       state.turn === name ? "color: red;" : ""
                     }">${name} (${state.scores[name] ?? "-"} pts) ${
@@ -98,6 +99,18 @@ function renderState(state: JSONGameState) {
           )
           .join("")}
 
+          </div>
+          <div id='events'>
+          ${[...(state.events ?? [])]
+            .reverse()
+            .map(
+              (e) =>
+                `<div style='width: 300px; padding: 2px; background: rgb(255, 255, ${~~Math.min(
+                  (Date.now() - e[1]) / 10,
+                  255
+                )})'>${e[0]}</div>`
+            )
+            .join("")}
           </div>
         `;
 }

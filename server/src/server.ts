@@ -1,4 +1,6 @@
-import { game } from ".";
+import { rooms } from ".";
+
+const game = rooms.get("1")?.getGame()!;
 
 const fastify = require("fastify")({ logger: false });
 

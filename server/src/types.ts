@@ -16,4 +16,5 @@ export interface JSONGameState {
   drawSize: number;
   lastRoundTurn: number;
   scores: { [name: string]: number };
+  events: [string, number][];
 }

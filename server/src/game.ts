@@ -5,6 +5,7 @@ import { Player } from "./player";
 import {
   DiscardHoldedCardEvent,
   DrawCardEvent,
+  eventToText,
   GameEndEvent,
   GameEvent,
   GameStartedEvent,
@@ -12,6 +13,8 @@ import {
   PlayerRevealEvent,
   SwapCardEvent,
 } from "./event";
+
+type GameEventWithData = { type: GameEvent; data: any; timestamp: number };
 
 export class Game {
   private players: Map<string, Player> = new Map();
@@ -28,6 +31,8 @@ export class Game {
 
   private phase: "REVEAL" | "PLAY" | "END" = "REVEAL";
 
+  private events: GameEventWithData[] = [];
+
   private readonly cardDiscarder = (discardedCard: Card) => {
     this.discardPile.unshift(discardedCard);
   };
@@ -37,6 +42,11 @@ export class Game {
   ) {
     this.deck = this.generateDeck();
     this.replenishDiscardPile();
+  }
+
+  private triggerEvent<T>(type: GameEvent, data: T) {
+    this.events.push({ type, data, timestamp: Date.now() });
+    this.pushEvent(type, data);
   }
 
   private generateDeck(): Deck {
@@ -61,7 +71,7 @@ export class Game {
         new Player(name, Board.generateBoardFromDeck(this.deck)),
       ])
     );
-    this.pushEvent<GameStartedEvent>(GameEvent.START, {});
+    this.triggerEvent<GameStartedEvent>(GameEvent.START, {});
   }
 
   print(): string {
@@ -108,6 +118,10 @@ export class Game {
         "hand"
       ),
       scores: this.scores,
+      events: this.events.map((e) => [
+        eventToText(e.type, e.data),
+        e.timestamp,
+      ]),
     };
   }
 
@@ -128,7 +142,7 @@ export class Game {
     }
     const card = this.getCardForTurn(useDiscardPile);
     player.setHoldedCard(card);
-    this.pushEvent<DrawCardEvent>(GameEvent.DRAW_CARD, {
+    this.triggerEvent<DrawCardEvent>(GameEvent.DRAW_CARD, {
       name: player.name,
       value: card.value,
       useDiscardPile,
@@ -167,7 +181,7 @@ export class Game {
   private currentPlayerDiscardHoldedCard() {
     const player = this.currentPlayer!;
     const value = player.discardHoldedCard(this.cardDiscarder);
-    this.pushEvent<DiscardHoldedCardEvent>(GameEvent.DISCARD_HOLDED_CARD, {
+    this.triggerEvent<DiscardHoldedCardEvent>(GameEvent.DISCARD_HOLDED_CARD, {
       name: player.name,
       value,
     });
@@ -176,7 +190,7 @@ export class Game {
   private playerSwapCard(player: Player, row: number, col: number) {
     const res = player.swapCard(row, col, this.cardDiscarder);
     this.checkBoardCompletion(player);
-    this.pushEvent<SwapCardEvent>(GameEvent.SWAP_CARD, {
+    this.triggerEvent<SwapCardEvent>(GameEvent.SWAP_CARD, {
       ...res,
       row,
       col,
@@ -187,7 +201,7 @@ export class Game {
 
   private setTurn(turn: number) {
     this.turn = turn;
-    this.pushEvent<NextTurnEvent>(GameEvent.NEXT_TURN, {
+    this.triggerEvent<NextTurnEvent>(GameEvent.NEXT_TURN, {
       name: this.currentPlayer!.name,
       isLastRound: this.isLastRound(),
     });
@@ -202,7 +216,7 @@ export class Game {
       }
     }
     this.turn++;
-    this.pushEvent<NextTurnEvent>(GameEvent.NEXT_TURN, {
+    this.triggerEvent<NextTurnEvent>(GameEvent.NEXT_TURN, {
       name: this.currentPlayer!.name,
       isLastRound: this.isLastRound(),
     });
@@ -211,7 +225,7 @@ export class Game {
   private endGame() {
     this.phase = "END";
     this.scores = this.computeScores();
-    this.pushEvent<GameEndEvent>(GameEvent.END, {});
+    this.triggerEvent<GameEndEvent>(GameEvent.END, {});
   }
 
   private computeScores(): Record<string, number> {
@@ -256,7 +270,7 @@ export class Game {
       return;
     }
 
-    this.pushEvent<PlayerRevealEvent>(GameEvent.PLAYER_REVEAL, {
+    this.triggerEvent<PlayerRevealEvent>(GameEvent.PLAYER_REVEAL, {
       row,
       col,
       name: player.name,

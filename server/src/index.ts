@@ -1,27 +1,30 @@
 import inquirer from "inquirer";
 import _ from "lodash";
-import { eventToText, GameEvent } from "./event";
-import { Game } from "./game";
-require("./server");
+import { Room } from "./room";
 
 console.log("start");
 
-const events: { name: GameEvent; data: any }[] = [];
-function eventCollector<T>(name: GameEvent, data: T) {
-  events.push({ name, data });
-}
-export const game = new Game(eventCollector);
+export const rooms = new Map<string, Room>();
+rooms.set("1", new Room());
+rooms.get("1")!.startGame();
+
+require("./server");
 
 (async () => {
-  game.initWithPlayers(["a", "b"]);
-  console.log(game.print());
-
   while (true) {
     let { answ } = await inquirer.prompt([
       { type: "input", name: "answ", message: "action" },
     ]);
 
-    const [action, ...params] = answ.split(" ");
+    const [roomid, action, ...params] = answ.split(" ");
+
+    const room = rooms.get(roomid)!;
+    room.startGame();
+    if (!room) {
+      console.error("no such room");
+      continue;
+    }
+    const game = room.getGame();
 
     switch (action) {
       case "r":
@@ -37,7 +40,7 @@ export const game = new Game(eventCollector);
         return;
       default:
     }
-    console.log(events.map((e) => eventToText(e.name, e.data)));
+    //console.log(events.map((e) => eventToText(e.name, e.data)));
     console.log(game.print());
     //console.log(JSON.stringify(game.toJSON(), null, 2));
   }
