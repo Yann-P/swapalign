@@ -13,20 +13,34 @@ export interface JSONGameState {
   events: [string, number][];
 }
 
-const BASEURL = "http://localhost:4000";
+const BASEURL = window.location.origin.replace(":1234", ":4000");
+
+const urlSearchParams = new URLSearchParams(window.location.search);
+const params = Object.fromEntries(urlSearchParams.entries());
+const roomId = params.r;
+
+import * as qr from "qrcode";
+document.addEventListener("DOMContentLoaded", async () => {
+  const qrdata = await qr.toDataURL(window.location.href);
+  const img = document.createElement("img");
+  img.src = qrdata;
+  document.body.appendChild(img);
+});
 
 function transpose<T>(array: T[][]) {
   return array[0].map((_, colIndex) => array.map((row) => row[colIndex]));
 }
 
 async function fetchState() {
-  const res = await fetch(BASEURL + "/state");
+  const res = await fetch(BASEURL + "/state", {
+    headers: { roomid: roomId },
+  });
   return res.json();
 }
 
 function genBoard(board: (number | null)[][]): string {
   return `
-        <table>
+        <table style="margin: 0 auto">
             ${transpose(board)
               .map(
                 (rowData, row) => `
@@ -34,9 +48,11 @@ function genBoard(board: (number | null)[][]): string {
                     ${rowData
                       .map(
                         (val, col) => `
-                        <td class="card boardcard" data-col="${col}" data-row="${row}" style="background: ${cardColor(
+                        <td class="card boardcard${
+                          val === null ? " unknowncard" : ""
+                        }" data-col="${col}" data-row="${row}" style="background: ${cardColor(
                           val
-                        )}; ">${val ?? "-"}</td>
+                        )}; ">${val ?? ""}</td>
                     `
                       )
                       .join("")}
@@ -51,37 +67,52 @@ function genBoard(board: (number | null)[][]): string {
 function renderState(state: JSONGameState) {
   document.getElementById("game").innerHTML = `
 
-        <h1>${state.phase} - ${state.turn}/${state.lastRoundTurn}</h1>
+        <div id="gameinfo">${
+          state.phase === "REVEAL"
+            ? "Révélez 2 cartes"
+            : state.phase === "END"
+            ? "Partie terminée"
+            : state.events[state.events.length - 1][0]
+        }</div>
 
         <table>
-        <tr>
-            <td>
-                <div class="card drawcard" style="border-bottom: ${
+        <tr style="font-variant:small-caps;color: #444"><td style="width: 100px;text-align:center;">Pioche</td><td style="width: 100px;text-align:center;">Défausse</td></tr>
+        <tr style="height: 130px">
+            <td style="width: 100px;">
+                <div class="card megacard drawcard unknowncard" style="margin: 0 auto;border-bottom: ${Math.min(
+                  20,
                   state.drawSize
-                }px solid lightgrey">
+                )}px solid grey">
                     ?
                 </div>
             </td>
-            <td>
-                <div class="card discard" style="background: ${cardColor(
+            <td style="width: 100px;">
+                <div class="card megacard discard" style="margin: 0 auto;background: ${cardColor(
                   state.discard
-                )}; border-bottom: ${state.discardSize}px solid lightgrey">
+                )}; border-bottom: ${Math.min(
+    20,
+    state.discardSize
+  )}px solid grey">
                     ${state.discard ?? ""}
                 </div>
             </td>
         </tr>
         </table>
 
-        <div style="display: flex; flex-direction: row">
+        <div style="display: flex; flex-wrap: wrap; margin-bottom: 300px">
 
         ${Object.keys(state.boards)
           .map(
             (name) =>
               `
-            <div style='padding: 10px; margin: 10px; background: #eee'>
+            <div style='flex-grow: 1; padding: 10px; margin: 10px; background: #eee; border: 2px solid ${
+              state.turn === name ? "red" : "#ddd"
+            }'>
                     <h2 style="height:50px;${
                       state.turn === name ? "color: red;" : ""
-                    }">${name} (${state.scores[name] ?? "-"} pts) ${
+                    }">${name}${
+                state.scores[name] ? ` (${state.scores[name]} points) ` : ""
+              } ${
                 state.hands[name] !== null
                   ? `
                         <div class="card" style="display: inline-block;background: ${cardColor(
@@ -116,22 +147,44 @@ function renderState(state: JSONGameState) {
 }
 
 async function sendCardAction(name: string, row: string, col: string) {
-  await fetch(BASEURL + `/card/${name}/${row}/${col}`);
+  //header ${name}
+  await fetch(BASEURL + `/action?action=card&row=${row}&col=${col}`, {
+    headers: { roomid: roomId, userid: name },
+  });
 }
 
 async function sendDrawAction() {
-  await fetch(BASEURL + `/draw`);
+  await fetch(BASEURL + `/action?action=draw`, { headers: { roomid: roomId } });
 }
 
 async function sendDiscardAction() {
-  await fetch(BASEURL + `/discard`);
+  await fetch(BASEURL + `/action?action=discard`, {
+    headers: { roomid: roomId },
+  });
+}
+
+async function newRoom(players: string) {
+  const res = await fetch(
+    BASEURL + `/createroom?players=${encodeURI(players)}`
+  );
+  return res.text();
 }
 
 (async () => {
   let state: JSONGameState;
 
+  document
+    .querySelector('#newroom input[type="button"]')!
+    .addEventListener("click", () => {
+      const players = (
+        document.querySelector('#newroom input[type="text"]') as HTMLFormElement
+      ).value;
+      newRoom(players).then((name) => (window.location.href = "/?r=" + name));
+    });
+
   while (true) {
     state = await fetchState();
+
     renderState(state);
 
     [...document.querySelectorAll(".boardcard")].forEach((card) => {

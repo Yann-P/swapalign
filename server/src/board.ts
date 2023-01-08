@@ -70,10 +70,15 @@ export class Board {
   }
 
   static generateBoardFromDeck(deck: Deck): Board {
+    const cols = 3;
+    const rows = 2;
+    if (deck.cards.length < cols * rows) {
+      throw new Error("not enough cards!!");
+    }
     const board = new Board();
-    for (let col = 0; col <= 3; col++) {
+    for (let col = 0; col <= cols; col++) {
       board.cards[col] = [];
-      for (let row = 0; row <= 2; row++) {
+      for (let row = 0; row <= rows; row++) {
         board.cards[col][row] = {
           card: deck.cards.shift()!,
           visible: false,

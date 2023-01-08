@@ -11,11 +11,9 @@ function eventCollector<T>(name: GameEvent, data: T) {
 */
 
 export class Room {
-  private readonly players: string[] = ["toto", "titi"];
+  private players: Set<string> = new Set();
 
   private game: Game;
-
-  public readonly id = Math.random().toString().slice(-6);
 
   constructor() {
     this.game = new Game(function eventCollector<T>(name: GameEvent, data: T) {
@@ -28,7 +26,11 @@ export class Room {
     return this.game;
   }
 
+  public addPlayer(name: string) {
+    this.players.add(name);
+  }
+
   public startGame() {
-    this.game.initWithPlayers(this.players);
+    this.game.initWithPlayers([...this.players]);
   }
 }

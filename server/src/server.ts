@@ -1,42 +1,61 @@
-import { rooms } from ".";
+import Fastify, { FastifyReply, FastifyRequest } from "fastify";
+import cors from "@fastify/cors";
+import { RoomManager } from "./room-manager";
 
-const game = rooms.get("1")?.getGame()!;
+const fastify = Fastify({ logger: false });
 
-const fastify = require("fastify")({ logger: false });
+(async () => {
+  await fastify.register(cors, {
+    origin: "*",
+  });
 
-fastify.get("/state", async (request: any, reply: any) => {
-  reply.header("Access-Control-Allow-Origin", "*");
-  return game.toJSON();
-});
+  fastify.get("/state", async (request: any, reply: any) => {
+    reply.header("Access-Control-Allow-Origin", "*");
+    const roomId = request.headers["roomid"];
+    const room = RoomManager.getRoom(roomId);
+    const game = room!.getGame();
+    return game.toJSON();
+  });
 
-fastify.get("/card/:user/:row/:col", async (request: any, reply: any) => {
-  game.playerClickCard(
-    request.params.user,
-    +request.params.row,
-    +request.params.col
+  fastify.get(
+    "/createroom",
+    async (request: FastifyRequest<any>, reply: FastifyReply) => {
+      const players = request.query["players"];
+      return RoomManager.createRoomAndGetId(players.split(" "));
+    }
   );
-  reply.header("Access-Control-Allow-Origin", "*");
-  return "OK";
-});
 
-fastify.get("/draw", async (request: any, reply: any) => {
-  game.currentPlayerDrawCard(false);
-  reply.header("Access-Control-Allow-Origin", "*");
-  return "OK";
-});
+  fastify.get("/action", async (request: FastifyRequest<any>, reply: any) => {
+    reply.header("Access-Control-Allow-Origin", "*");
+    const roomId = request.headers["roomid"];
+    const room = RoomManager.getRoom(roomId);
+    const game = room!.getGame();
+    const userId = request.headers["userid"];
+    console.log(request.query["action"], userId, roomId);
+    switch (request.query["action"]) {
+      case "draw":
+        game.currentPlayerDrawCard(false);
+        break;
+      case "card":
+        game.playerClickCard(
+          userId,
+          +request.query["row"],
+          +request.query["col"]
+        );
+        break;
+      case "discard":
+        game.currentPlayerUseDiscard();
+        break;
+    }
+  });
 
-fastify.get("/discard", async (request: any, reply: any) => {
-  game.currentPlayerUseDiscard();
-  reply.header("Access-Control-Allow-Origin", "*");
-  return "OK";
-});
-
-const start = async () => {
-  try {
-    await fastify.listen(4000, "0.0.0.0");
-  } catch (err) {
-    fastify.log.error(err);
-    process.exit(1);
-  }
-};
-start();
+  const start = async () => {
+    try {
+      await fastify.listen(4000, "0.0.0.0");
+    } catch (err) {
+      fastify.log.error(err);
+      process.exit(1);
+    }
+  };
+  start();
+})().catch(console.error);

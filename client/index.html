@@ -9,15 +9,21 @@
         user-select: none;
         font-family: sans-serif;
       }
+
       .card {
+        padding-top: 10px;
         height: 50px;
         width: 30px;
-        border: 1px solid grey;
+        border: 1px solid #777;
         cursor: pointer;
         text-align: center;
-        text-shadow: 0 0 2px white, 0 0 2px white, 0 0 2px white, 0 0 2px white;
-        font-size: 30px;
+        text-shadow: 0 0 4px white, 0 0 3px white, 0 0 2px white, 0 0 1px white;
+        font-size: 25px;
         border-radius: 10px;
+        vertical-align: middle;
+      }
+      .card:hover:not(.megacard) {
+        transform: rotate(7deg) scale(1.2);
       }
       #events {
         position: fixed;
@@ -25,12 +31,61 @@
         bottom: 10;
         max-height: 100px;
       }
+
+      .unknowncard {
+        background: conic-gradient(
+          lightgreen 0%,
+          yellow 30%,
+          indianred 60%,
+          #36f 90%,
+          lightgreen 100%
+        ) !important;
+      }
+
+      .megacard {
+        transform: scale(1.6);
+      }
+
+      .megacard:hover {
+        transform: scale(1.7);
+      }
+
+      .board {
+        margin: 0 auto;
+      }
+
+      #newroom {
+        background-color: #eee;
+        padding: 10px;
+        margin: 10px;
+      }
+
+      #newroom input {
+        margin: 3px;
+        padding: 3px;
+      }
+
+      #gameinfo {
+        height: 50px;
+        font-weight: bold;
+        margin: 10px;
+        padding: 10px;
+        background-color: #eee;
+      }
     </style>
     <title>Swapalign</title>
   </head>
 
   <body>
+    <div id="newroom">
+      Nouveau salon avec les joueurs (séparer par des espaces)
+      <input type="text" name="newroom" placeholder="titi toto tata" /><input
+        type="button"
+        value="Créer et rejoindre"
+      />
+    </div>
     <div id="game"></div>
     <script type="module" src="src/swapalign.ts"></script>
+    <canvas id="canvas"></canvas>
   </body>
 </html>

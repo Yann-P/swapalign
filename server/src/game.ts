@@ -56,6 +56,8 @@ export class Game {
     );
     deck.cards.push(...Array(15).fill({ value: 0 }));
     deck.cards.push(...Array(5).fill({ value: -2 }));
+    deck.cards.push(...Array(2).fill({ value: -5 }));
+    deck.cards.push(...Array(2).fill({ value: 15 }));
     deck.cards = _.shuffle(deck.cards);
     return deck;
   }
