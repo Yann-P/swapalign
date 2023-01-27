@@ -9,36 +9,52 @@ export interface CardOnBoard {
 export class Board {
   private cards: CardOnBoard[][] = [];
 
-  revealCard(row: number, col: number): { success: boolean; value?: number } {
+  revealCard(
+    row: number,
+    col: number
+  ): { success: boolean; toDiscard: Card[]; revealedCardValue?: number } {
     const card = this.cardAt(row, col);
     if (card.visible) {
-      return { success: false };
+      return { success: false, toDiscard: [] };
     }
     const value = card.card.value;
     card.visible = true;
-    //this.cardAt(row, col).visible = true;
-    this.removeColumnIfComplete(col);
-    return { success: true, value };
+
+    const cardsFromColumnToDiscard = this.removeColumnIfComplete(col);
+
+    return {
+      success: true,
+      revealedCardValue: value,
+      toDiscard: cardsFromColumnToDiscard.map((cob) => cob.card),
+    };
   }
 
-  revealAllCards() {
-    this.cards.forEach((rows, col) =>
-      rows.forEach((card, row) => this.revealCard(row, col))
-    );
+  revealAllCards(): void {
+    for (const [col, rows] of this.cards.entries()) {
+      for (const [row, card] of rows.entries()) {
+        const res = this.revealCard(row, col);
+        if (res.toDiscard.length > 0) {
+          return this.revealAllCards();
+        }
+      }
+    }
   }
 
   hasRevealedAllCards(): boolean {
     return this.cards.every((col) => col.every((card) => card.visible));
   }
 
-  removeColumnIfComplete(col: number) {
+  removeColumnIfComplete(col: number): CardOnBoard[] {
     if (this.isColumnComplete(col)) {
-      this.cards.splice(col, 1);
+      const discardedCards = this.cards.splice(col, 1);
+      console.log("discardedCards", JSON.stringify(discardedCards, null, 2));
+
+      return discardedCards[0];
     }
+    return [];
   }
 
   private isColumnComplete(col: number): boolean {
-    console.log(JSON.stringify([0, 1, 2].map((row) => this.cardAt(row, col))));
     return [0, 1, 2]
       .map((row) => this.cardAt(row, col))
       .every(
@@ -48,17 +64,25 @@ export class Board {
       );
   }
 
-  swapCard(card: Readonly<Card>, row: number, col: number): Card {
-    console.log("swapcard", card, row, col);
+  swapCard(
+    card: Readonly<Card>,
+    row: number,
+    col: number
+  ): { toDiscard: Card[] } {
     let cardOnBoard = this.cardAt(row, col);
     const cardToDiscard = cardOnBoard.card;
 
     cardOnBoard.card = card;
     cardOnBoard.visible = true;
 
-    this.removeColumnIfComplete(col);
+    const cardsFromColumnToDiscard = this.removeColumnIfComplete(col);
 
-    return cardToDiscard;
+    return {
+      toDiscard: [
+        cardToDiscard,
+        ...cardsFromColumnToDiscard.map((cob) => cob.card), // cards from the column must be on top
+      ],
+    };
   }
 
   private cardAt(row: number, col: number) {
@@ -70,15 +94,15 @@ export class Board {
   }
 
   static generateBoardFromDeck(deck: Deck): Board {
-    const cols = 3;
-    const rows = 2;
+    const cols = 4;
+    const rows = 3;
     if (deck.cards.length < cols * rows) {
       throw new Error("not enough cards!!");
     }
     const board = new Board();
-    for (let col = 0; col <= cols; col++) {
+    for (let col = 0; col < cols; col++) {
       board.cards[col] = [];
-      for (let row = 0; row <= rows; row++) {
+      for (let row = 0; row < rows; row++) {
         board.cards[col][row] = {
           card: deck.cards.shift()!,
           visible: false,

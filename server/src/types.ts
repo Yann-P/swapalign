@@ -1,4 +1,5 @@
 export interface Card {
+  readonly id: number;
   readonly value: number;
 }
 

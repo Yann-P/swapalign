@@ -46,18 +46,29 @@ export class Game {
 
   private triggerEvent<T>(type: GameEvent, data: T) {
     this.events.push({ type, data, timestamp: Date.now() });
+    console.log(eventToText(type, data));
     this.pushEvent(type, data);
   }
 
-  private generateDeck(): Deck {
+  private generateDeck(
+    distribution = [
+      [-2, 5],
+      [0, 15],
+      ...[-1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((value) => [
+        value,
+        10,
+      ]),
+    ]
+  ): Deck {
+    let id = 0;
     const deck: Deck = { cards: [] };
-    [-1, ..._.range(1, 13)].forEach((i) =>
-      deck.cards.push(...Array(10).fill({ value: i }))
+
+    distribution.forEach(([value, amount]) =>
+      deck.cards.push(
+        ...Array.from({ length: amount }, () => ({ id: id++, value }))
+      )
     );
-    deck.cards.push(...Array(15).fill({ value: 0 }));
-    deck.cards.push(...Array(5).fill({ value: -2 }));
-    deck.cards.push(...Array(2).fill({ value: -5 }));
-    deck.cards.push(...Array(2).fill({ value: 15 }));
+
     deck.cards = _.shuffle(deck.cards);
     return deck;
   }
@@ -266,17 +277,23 @@ export class Game {
     if (!player.canRevealCard() && !playerMustReveal) {
       return;
     }
-    const { success, value } = player.revealCard(row, col);
+    const { success, revealedCardValue, toDiscard } = player.revealCard(
+      row,
+      col
+    );
 
     if (!success) {
       return;
     }
 
+    toDiscard.forEach((card) => this.cardDiscarder(card));
+
     this.triggerEvent<PlayerRevealEvent>(GameEvent.PLAYER_REVEAL, {
       row,
       col,
       name: player.name,
-      value: value!,
+      value: revealedCardValue!,
+      hasTriggeredColumn: toDiscard.length > 0,
       isRevealPhase: this.phase === "REVEAL",
     });
 

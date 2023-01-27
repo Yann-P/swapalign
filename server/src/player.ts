@@ -49,32 +49,42 @@ export class Player {
     row: number,
     col: number,
     discardCard: (card: Card) => void
-  ): { newCardValue: number; discardedCardValue: number } {
+  ): {
+    newCardValue: number;
+    discardedCardValue: number;
+    hasTriggeredColumn: boolean;
+  } {
     if (!this.holdingCard) {
       throw new Error("Cannot swap card as this player holds no card");
     }
     const newCardValue = this.holdingCard.value;
-    const cardToDiscard = this.board.swapCard(this.holdingCard, row, col);
-    const discardedCardValue = cardToDiscard.value;
+    const { toDiscard } = this.board.swapCard(this.holdingCard, row, col);
     this.holdingCard = undefined;
-    discardCard(cardToDiscard);
+    toDiscard.forEach((card) => discardCard(card));
     return {
       newCardValue,
-      discardedCardValue,
+      discardedCardValue: toDiscard[0].value,
+      hasTriggeredColumn: toDiscard.length > 1, // there is at least one card discarded, the swapped card
     };
   }
 
-  revealCard(row: number, col: number): { success: boolean; value?: number } {
-    const { success, value } = this.board.revealCard(row, col);
+  revealCard(
+    row: number,
+    col: number
+  ): { success: boolean; toDiscard: Card[]; revealedCardValue?: number } {
+    const { success, toDiscard, revealedCardValue } = this.board.revealCard(
+      row,
+      col
+    );
     if (!success) {
-      return { success: false };
+      return { success: false, toDiscard: [] };
     }
     if (this.mustReveal) {
       this.mustReveal = false;
     } else {
       this.revealedCards++;
     }
-    return { success, value };
+    return { success, revealedCardValue, toDiscard };
   }
 
   revealAllCards() {

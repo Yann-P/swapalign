@@ -20,6 +20,7 @@ export interface SwapCardEvent {
   col: number;
   newCardValue: number;
   discardedCardValue: number;
+  hasTriggeredColumn: boolean;
 }
 export interface NextTurnEvent {
   isLastRound: boolean;
@@ -32,6 +33,7 @@ export interface PlayerRevealEvent {
   value: number;
   row: number;
   col: number;
+  hasTriggeredColumn: boolean;
 }
 export interface DiscardHoldedCardEvent {
   name: string;
@@ -62,9 +64,19 @@ export function eventToText(event: GameEvent, data: any) {
       return `${d.name} défausse le ${d.value} pioché, et doit maintenant révéler une carte...`;
     case GameEvent.PLAYER_REVEAL:
       d = data as PlayerRevealEvent;
-      return `${d.name} révèle un ${d.value} sur la colonne n°${d.col}`;
+      return `${d.name} révèle un ${d.value} sur la colonne n°${d.col}.${
+        d.hasTriggeredColumn ? ` Une colonne de ${d.value} est éliminée !` : ""
+      }`;
     case GameEvent.SWAP_CARD:
       d = data as SwapCardEvent;
-      return `${d.name} pose le ${d.newCardValue} de sa main et en remplaçant le ${d.discardedCardValue} de la colonne ${d.col}`;
+      return `${d.name} pose le ${
+        d.newCardValue
+      } de sa main et en remplaçant le ${d.discardedCardValue} de la colonne ${
+        d.col
+      }.${
+        d.hasTriggeredColumn
+          ? ` Une colonne de ${d.newCardValue} est éliminée !`
+          : ""
+      }`;
   }
 }

@@ -17,17 +17,14 @@ const fastify = Fastify({ logger: false });
     return game.toJSON();
   });
 
-  fastify.get(
-    "/createroom",
-    async (request: FastifyRequest<any>, reply: FastifyReply) => {
-      const players = request.query["players"];
-      return RoomManager.createRoomAndGetId(players.split(" "));
-    }
-  );
+  fastify.get("/createroom", async (request: any, reply: FastifyReply) => {
+    const players = request.query["players"];
+    return RoomManager.createRoomAndGetId(players.split(" "));
+  });
 
-  fastify.get("/action", async (request: FastifyRequest<any>, reply: any) => {
+  fastify.get("/action", async (request: any, reply: any) => {
     reply.header("Access-Control-Allow-Origin", "*");
-    const roomId = request.headers["roomid"];
+    const roomId = request.headers["roomid"] as string;
     const room = RoomManager.getRoom(roomId);
     const game = room!.getGame();
     const userId = request.headers["userid"];
