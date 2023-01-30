@@ -18,4 +18,12 @@ export interface JSONGameState {
   lastRoundTurn: number;
   scores: { [name: string]: number };
   events: [string, number][];
+  permissions: {
+    [name: string]: {
+      reveal: boolean;
+      draw: boolean;
+      swap: boolean;
+      discard: boolean;
+    };
+  };
 }

@@ -11,6 +11,14 @@ export interface JSONGameState {
   lastRoundTurn: number;
   scores: { [name: string]: number };
   events: [string, number][];
+  permissions: {
+    [name: string]: {
+      reveal: boolean;
+      draw: boolean;
+      swap: boolean;
+      discard: boolean;
+    };
+  };
 }
 
 const BASEURL = window.location.origin.replace(":1234", ":4000");
@@ -38,7 +46,11 @@ async function fetchState() {
   return res.json();
 }
 
-function genBoard(board: (number | null)[][]): string {
+function genBoard(
+  name: string,
+  state: JSONGameState,
+  board: (number | null)[][]
+): string {
   return `
         <table style="margin: 0 auto">
             ${transpose(board)
@@ -48,11 +60,16 @@ function genBoard(board: (number | null)[][]): string {
                     ${rowData
                       .map(
                         (val, col) => `
-                        <td class="card boardcard${
+                        <td><div class="${
+                          (state.permissions[name].reveal && val === null) ||
+                          state.permissions[name].swap
+                            ? "highlight "
+                            : ""
+                        }card boardcard${
                           val === null ? " unknowncard" : ""
                         }" data-col="${col}" data-row="${row}" style="background: ${cardColor(
                           val
-                        )}; ">${val ?? ""}</td>
+                        )}; ">${val ?? ""}</div></td>
                     `
                       )
                       .join("")}
@@ -67,7 +84,7 @@ function genBoard(board: (number | null)[][]): string {
 function renderState(state: JSONGameState) {
   document.getElementById("game").innerHTML = `
 
-        <div id="gameinfo">${
+        <div id="gameinfo">👉 ${
           state.phase === "REVEAL"
             ? "Révélez 2 cartes"
             : state.phase === "END"
@@ -79,20 +96,22 @@ function renderState(state: JSONGameState) {
         <tr style="font-variant:small-caps;color: #444"><td style="width: 100px;text-align:center;">Pioche</td><td style="width: 100px;text-align:center;">Défausse</td></tr>
         <tr style="height: 130px">
             <td style="width: 100px;">
-                <div class="card megacard drawcard unknowncard" style="margin: 0 auto;border-bottom: ${Math.min(
-                  20,
-                  state.drawSize
-                )}px solid grey">
+                <div class="${
+                  Object.values(state.permissions).some((p) => p.draw)
+                    ? "highlight "
+                    : ""
+                }card megacard drawcard unknowncard" style="margin: 0 auto;">
                     ?
                 </div>
             </td>
             <td style="width: 100px;">
-                <div class="card megacard discard" style="margin: 0 auto;background: ${cardColor(
-                  state.discard
-                )}; border-bottom: ${Math.min(
-    20,
-    state.discardSize
-  )}px solid grey">
+                <div class="${
+                  Object.values(state.permissions).some((p) => p.discard)
+                    ? "highlight "
+                    : ""
+                }card megacard discard" style="margin: 0 auto;background: ${cardColor(
+    state.discard
+  )};">
                     ${state.discard ?? ""}
                 </div>
             </td>
@@ -105,12 +124,17 @@ function renderState(state: JSONGameState) {
           .map(
             (name) =>
               `
-            <div style='flex-grow: 1; padding: 10px; margin: 10px; background: #eee; border: 2px solid ${
-              state.turn === name ? "red" : "#ddd"
-            }'>
-                    <h2 style="height:50px;${
-                      state.turn === name ? "color: red;" : ""
-                    }">${name}${
+            <div style='border-radius: 20px; flex-grow: 1; padding: 15px; margin: 10px; background: ${
+              !state.scores ||
+              state.scores[name] !== Math.min(...Object.values(state.scores))
+                ? `radial-gradient(circle, rgba(130,186,91,${
+                    state.turn === name ? ".9" : "0.5"
+                  }) 0%, rgba(37,134,150,${
+                    state.turn === name ? ".9" : "0.5"
+                  }) 100%)`
+                : `radial-gradient(circle, rgba(255,248,0,1) 0%, rgba(255,162,0,1) 100%)`
+            };'>
+                    <div style="height:50px;font-size: 50px; color: white;">${name}${
                 state.scores[name] ? ` (${state.scores[name]} points) ` : ""
               } ${
                 state.hands[name] !== null
@@ -121,9 +145,9 @@ function renderState(state: JSONGameState) {
                             ${state.hands[name]}
                         </div>`
                   : ``
-              }</h2>
+              }</div>
                     <div class="board" data-name="${name}">
-                        ${genBoard(state.boards[name])}
+                        ${genBoard(name, state, state.boards[name])}
                     </div>
             </div>
             `
@@ -131,7 +155,7 @@ function renderState(state: JSONGameState) {
           .join("")}
 
           </div>
-          <div id='events'>
+          <!--<div id='events'>
           ${[...(state.events ?? [])]
             .reverse()
             .map(
@@ -142,7 +166,7 @@ function renderState(state: JSONGameState) {
                 )})'>${e[0]}</div>`
             )
             .join("")}
-          </div>
+          </div>-->
         `;
 }
 
@@ -206,6 +230,6 @@ async function newRoom(players: string) {
       sendDiscardAction().catch(console.error);
     });
 
-    await new Promise((res) => setTimeout(res, 200));
+    await new Promise((res) => setTimeout(res, 300));
   }
 })().catch(console.error);

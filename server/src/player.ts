@@ -10,6 +10,10 @@ export class Player {
 
   constructor(public readonly name: string, private board: Board) {}
 
+  hasRevealedAtLeast2Cards() {
+    return this.revealedCards >= 2;
+  }
+
   isHoldingCard(): boolean {
     return this.holdingCard !== undefined;
   }

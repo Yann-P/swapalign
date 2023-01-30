@@ -135,6 +135,29 @@ export class Game {
         eventToText(e.type, e.data),
         e.timestamp,
       ]),
+      permissions: _.keyBy(
+        this.playersAsArray.map((player) => {
+          const isPlayerTurn = this.currentPlayer?.name === player.name;
+          return {
+            name: player.name,
+            reveal:
+              (this.phase === "REVEAL" && !player.hasRevealedAtLeast2Cards()) ||
+              (this.phase === "PLAY" &&
+                isPlayerTurn &&
+                player.mustRevealCard()),
+            swap:
+              this.phase === "PLAY" && isPlayerTurn && player.isHoldingCard(),
+            draw:
+              this.phase === "PLAY" &&
+              isPlayerTurn &&
+              !player.isHoldingCard() &&
+              !player.mustRevealCard(),
+            discard:
+              this.phase === "PLAY" && isPlayerTurn && !player.mustRevealCard(),
+          };
+        }),
+        "name"
+      ),
     };
   }
 
