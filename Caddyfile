@@ -1,6 +1,6 @@
 skyjo.ynn.ovh
 log
-route /server {
+route /server/* {
   uri strip_prefix /server
   reverse_proxy server:4000
 }
