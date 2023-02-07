@@ -1,0 +1,28 @@
+nginx.conf:
+
+http {
+    ...
+}
+
+stream {
+    server {
+        listen 443;
+        proxy_pass 127.0.0.1:1237;
+        ssl_preread on;
+   }
+}
+
+===
+
+/etc/nginx/sites-enabled/default:
+
+server {
+        listen 80;
+        server_name skyjo.ynn.ovh;
+        location / {
+          proxy_set_header   X-Forwarded-For $remote_addr;
+          proxy_set_header   Host $http_host;
+          proxy_pass         "http://127.0.0.1:1235";
+        }
+
+}

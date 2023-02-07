@@ -1,0 +1,36 @@
+version: "3"
+
+services:
+  client:
+    build: ./client
+    restart: unless-stopped
+    networks:
+      - net
+
+  server:
+    build: ./server
+    restart: unless-stopped
+    networks:
+      - net
+
+  caddy:
+    image: caddy:2.6.2
+    restart: unless-stopped
+    ports:
+      - "1235:80"
+      - "1237:443"
+      - "1237:443/udp"
+    volumes:
+      - $PWD/Caddyfile:/etc/caddy/Caddyfile
+      - $PWD/site:/srv
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - net
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  net:
