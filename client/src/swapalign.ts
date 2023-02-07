@@ -21,7 +21,7 @@ export interface JSONGameState {
   };
 }
 
-const BASEURL = window.location.origin.replace(":1234", ":4000");
+const BASEURL = process.env.BASEURL;
 
 const urlSearchParams = new URLSearchParams(window.location.search);
 const params = Object.fromEntries(urlSearchParams.entries());
@@ -83,14 +83,17 @@ function genBoard(
 
 function renderState(state: JSONGameState) {
   document.getElementById("game").innerHTML = `
-
-        <div id="gameinfo">👉 ${
+        <div id="gameinfo">${
           state.phase === "REVEAL"
             ? "Révélez 2 cartes"
             : state.phase === "END"
             ? "Partie terminée"
             : state.events[state.events.length - 1][0]
+        }
+        <div style='color: #888; font-size: .5em'>${
+          state.events[state.events.length - 2]?.[0] ?? ""
         }</div>
+      </div>
 
         <table>
         <tr style="font-variant:small-caps;color: #444"><td style="width: 100px;text-align:center;">Pioche</td><td style="width: 100px;text-align:center;">Défausse</td></tr>
@@ -136,16 +139,13 @@ function renderState(state: JSONGameState) {
             };'>
                     <div style="height:50px;font-size: 50px; color: white;">${name}${
                 state.scores[name] ? ` (${state.scores[name]} points) ` : ""
-              } ${
-                state.hands[name] !== null
-                  ? `
-                        <div class="card" style="display: inline-block;background: ${cardColor(
-                          state.hands[name]
-                        )}">
-                            ${state.hands[name]}
-                        </div>`
-                  : ``
-              }</div>
+              } 
+                <div class="card" style="display: inline-block;opacity:${
+                  state.hands[name] !== null ? "1" : "0"
+                };background: ${cardColor(state.hands[name])}">
+                    ${state.hands[name]}
+                </div>
+              </div>
                     <div class="board" data-name="${name}">
                         ${genBoard(name, state, state.boards[name])}
                     </div>
