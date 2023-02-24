@@ -1,27 +1,128 @@
 html {
   user-select: none;
-  font-family: sans-serif;
+  font-family: nunito, sans-serif;
   margin: 0;
-  background: radial-gradient(
-    circle,
-    rgba(229, 241, 241, 1) 0%,
-    rgba(226, 233, 229, 1) 100%
-  );
+  background: #262b44;
+  color: #c0cbdc;
+}
+
+input {
+  margin: 5px;
+  padding: 10px;
+  background-color: #c0cbdc;
+  border: 1px solid #5a6988;
+  border-bottom: 3px solid #8b9bb4;
+  border-radius: 5px;
+  font-size: 1em;
+  font-weight: 700;
+  color: #262b44;
+}
+
+input:focus {
+  outline: none;
+  border: 1px solid #fee761 !important;
+}
+
+input[type="button"],
+input[type="submit"] {
+  margin: 5px;
+  padding: 10px;
+  background: #63c74d;
+  border: none;
+  border-bottom: 1px solid #265c42;
+  border-bottom: 3px solid #3e8948;
+  color: white;
+  font-size: 1em;
+  font-weight: 700;
+  font-family: nunito, sans-serif;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#lobby {
+  margin: auto;
+  margin-top: 100px;
+  max-width: 500px;
+  padding: 20px;
+  background: #3a4466;
+  box-shadow: 2px 2px 5px #181425;
+  border-radius: 5px;
+}
+
+#lobby h1 {
+  border-bottom: 2px solid #5a6988;
+  margin: 0;
+}
+
+#lobby ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  margin-top: 20px;
+}
+
+#lobby li {
+  padding-top: 5px;
+  font-size: 1.5em;
+  font-weight: 700;
+}
+
+#startgame {
+  margin-top: 20px;
+}
+
+#qr {
+  margin: 0 auto;
+  margin-top: 20px;
+
+  opacity: 0.8;
+  width: 164px;
+  box-shadow: 2px 2px 5px #181425;
+}
+
+#qr img {
+  border-radius: 5px;
+}
+
+.playerboard {
+  flex-grow: 1;
+  margin: 10px;
+  padding: 10px;
+  background-color: #3a4466;
+  border: 2px solid #5a6988;
+  box-shadow: 2px 2px 5px #181425;
+  border-radius: 5px;
+}
+
+.playerboard.currentturn {
+  border: 2px solid #fee761;
+}
+
+.playerboard.won {
+  background-color: #fee761;
+}
+.playerboard .playername {
+  margin: 0;
+  padding: 0;
+  margin-top: -5px;
+  font-weight: 700;
+  font-size: 2em;
 }
 
 .card {
+  opacity: 0.9;
   cursor: default;
   font-family: sans-serif;
   color: black;
   padding-top: 20px;
-  height: 40px;
-  width: 35px;
+  height: 45px;
+  width: 39px;
   font-weight: bold;
   -webkit-text-stroke: 1px white;
-  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 30, 0.5);
   text-align: center;
   font-size: 25px;
-  border-radius: 10px;
+  border-radius: 7px;
   vertical-align: middle;
 }
 .card:hover:not(.megacard):is(.highlight) {
@@ -35,13 +136,13 @@ html {
 }
 
 .unknowncard {
-  background: conic-gradient(
-    lightgreen 0%,
-    yellow 30%,
-    indianred 60%,
-    #36f 90%,
-    lightgreen 100%
-  ) !important;
+  background-color: #c0cbdc !important;
+  background-image: repeating-radial-gradient(
+      circle at 0 0,
+      transparent 0,
+      #c0cbdc 10px
+    ),
+    repeating-linear-gradient(#c0cbdc, #8b9bb4) !important;
 }
 
 .megacard {
@@ -57,20 +158,19 @@ html {
 }
 
 #newroom {
-  background-color: white;
+  background-color: #3a4466;
   padding: 10px;
   margin: 10px;
-}
-
-#newroom input {
-  margin: 3px;
-  padding: 3px;
+  box-shadow: 2px 2px 5px #181425;
+  border-radius: 5px;
 }
 
 #gameinfo {
+  color: #fee761;
   height: 50px;
-  font-size: 30px;
-  color: black;
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 0.9;
   margin: 10px;
   padding: 10px;
 }
@@ -78,18 +178,9 @@ html {
 .highlight {
   position: relative;
   cursor: pointer;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2),
-    2px 2px 7px rgba(0, 20, 20, 0.3), inset 0 0 0 2px rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 7px #fee761, inset 0 0 0 1px rgba(0, 0, 30, 0.5);
 }
 
-.highlight::after {
-  content: "👉";
-  display: block;
-  position: absolute;
-  font-size: 20px;
-  top: 50px;
-  left: 20px;
-  width: 25px;
-  height: 20px;
-  transform: rotate(-100deg);
+.megacardlabel {
+  margin-bottom: -15px;
 }

@@ -3,16 +3,16 @@ export function cardColor(val: number | null) {
     return "lightgray";
   }
   if (val <= -1) {
-    return "blue";
+    return "#124e89";
   }
   if (val === 0) {
-    return "skyblue";
+    return "#0099db";
   }
   if (val < 5) {
-    return "lightgreen";
+    return "#63c74d";
   }
   if (val < 9) {
-    return "yellow";
+    return "#fee761";
   }
-  return "indianred";
+  return "#e43b44";
 }

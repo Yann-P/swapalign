@@ -4,14 +4,32 @@ const rooms: Map<string, Room> = new Map();
 const takenRoomIds = new Set();
 
 export const RoomManager = {
-  createRoomAndGetId(players: string[]): string {
-    const id = this.generateRoomId();
+  createRoomAndGetId(): string {
+    const roomId = this.generateRoomId();
     const room = new Room();
-    rooms.set(id, room);
+    rooms.set(roomId, room);
+    return roomId;
+  },
 
-    players.forEach((p) => room.addPlayer(p)); // todo remove
-    room.startGame(); // todo remove
-    return id;
+  registerPlayer(roomId: string, name: string) {
+    const room = rooms.get(roomId);
+
+    if (!room) {
+      throw new Error("room does not exist");
+    }
+
+    return room.addPlayer(name);
+  },
+
+  startGame(roomId: string) {
+    const room = rooms.get(roomId);
+
+    if (!room) {
+      console.error("start game : room does not exist");
+      return;
+    }
+
+    return room.startGame();
   },
 
   getRoom(id: string): Room {
@@ -24,11 +42,11 @@ export const RoomManager = {
 
   generateRoomId() {
     const adjectives =
-      "red blue green dark light nice fun geek fast slow big small fat calm free half lazy mean rude sick ugly wild tall drunk high low old new rare".split(
+      "cool red blue green dark brown light nice fun geek fast slow big small fat calm free half lazy wild tall drunk high low old new rare".split(
         " "
       );
     const nouns =
-      "cat dog sheep horse seal fish whale rat mouse lamb tree plant tea wolf cube fly bee wasp ant monkey king star sign shop shark cake fruit oak elk fox frog cow".split(
+      "eye cat dog sheep horse seal fish whale rat mouse car lamb tree spy hat plant tea wolf cube fly bee wasp ant monkey king star sign shop shark cake fruit oak elk fox frog cow".split(
         " "
       );
     let word;

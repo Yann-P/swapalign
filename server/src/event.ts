@@ -64,7 +64,7 @@ export function eventToText(event: GameEvent, data: any) {
       return `${d.name} défausse le ${d.value} pioché, et doit maintenant révéler une carte...`;
     case GameEvent.PLAYER_REVEAL:
       d = data as PlayerRevealEvent;
-      return `${d.name} révèle un ${d.value} sur la colonne n°${d.col}.${
+      return `${d.name} révèle un ${d.value} sur la colonne n°${d.col + 1}.${
         d.hasTriggeredColumn ? ` Une colonne de ${d.value} est éliminée !` : ""
       }`;
     case GameEvent.SWAP_CARD:
@@ -72,7 +72,7 @@ export function eventToText(event: GameEvent, data: any) {
       return `${d.name} pose le ${
         d.newCardValue
       } de sa main et en remplaçant le ${d.discardedCardValue} de la colonne ${
-        d.col
+        d.col + 1
       }.${
         d.hasTriggeredColumn
           ? ` Une colonne de ${d.newCardValue} est éliminée !`

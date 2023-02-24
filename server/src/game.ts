@@ -185,6 +185,10 @@ export class Game {
     });
   }
 
+  getCurrentPlayerName() {
+    return this.currentPlayer?.name;
+  }
+
   currentPlayerDrawCard(useDiscardPile: boolean) {
     if (this.currentPlayer === undefined) return;
     if (this.phase === "END") {

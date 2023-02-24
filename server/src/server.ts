@@ -17,20 +17,49 @@ const fastify = Fastify({ logger: false });
     return game.toJSON();
   });
 
-  fastify.get("/createroom", async (request: any, reply: FastifyReply) => {
-    const players = request.query["players"];
-    return RoomManager.createRoomAndGetId(players.split(" "));
+  fastify.get("/registerplayer/:roomid/:name", async (request: any) => {
+    const [roomId, name] = [request.params["roomid"], request.params["name"]];
+    return RoomManager.registerPlayer(roomId, name);
   });
+
+  fastify.get("/startgame/:roomid", async (request: any) => {
+    const roomId = request.params["roomid"];
+    const room = RoomManager.getRoom(roomId);
+    await room.startGame();
+  });
+
+  fastify.get("/createroom", async (request: any, reply: FastifyReply) => {
+    return RoomManager.createRoomAndGetId();
+  });
+
+  fastify.get(
+    "/lobbyinfo/:roomid",
+    async (request: any, reply: FastifyReply) => {
+      const roomId = request.params["roomid"];
+      const room = RoomManager.getRoom(roomId);
+      return room.toJSON();
+    }
+  );
 
   fastify.get("/action", async (request: any, reply: any) => {
     reply.header("Access-Control-Allow-Origin", "*");
     const roomId = request.headers["roomid"] as string;
+    const token = request.headers["token"] as string;
     const room = RoomManager.getRoom(roomId);
     const game = room!.getGame();
-    const userId = request.headers["userid"];
-    console.log(request.query["action"], userId, roomId);
+    const userId = room.getPlayerNameFromToken(token);
+
+    if (!userId) {
+      console.error("unknown player");
+      return;
+    }
+
+    //console.log(request.query["action"], userId, roomId);
     switch (request.query["action"]) {
       case "draw":
+        if (game.getCurrentPlayerName() !== userId) {
+          return;
+        }
         game.currentPlayerDrawCard(false);
         break;
       case "card":
@@ -41,6 +70,9 @@ const fastify = Fastify({ logger: false });
         );
         break;
       case "discard":
+        if (game.getCurrentPlayerName() !== userId) {
+          return;
+        }
         game.currentPlayerUseDiscard();
         break;
     }

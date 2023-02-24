@@ -26,14 +26,8 @@ const BASEURL = process.env.BASEURL;
 const urlSearchParams = new URLSearchParams(window.location.search);
 const params = Object.fromEntries(urlSearchParams.entries());
 const roomId = params.r;
-
-import * as qr from "qrcode";
-document.addEventListener("DOMContentLoaded", async () => {
-  const qrdata = await qr.toDataURL(window.location.href);
-  const img = document.createElement("img");
-  img.src = qrdata;
-  document.body.appendChild(img);
-});
+const token = JSON.parse(localStorage.getItem(roomId) ?? "{}").token;
+const currentName = JSON.parse(localStorage.getItem(roomId) ?? "{}").name;
 
 function transpose<T>(array: T[][]) {
   return array[0].map((_, colIndex) => array.map((row) => row[colIndex]));
@@ -61,8 +55,10 @@ function genBoard(
                       .map(
                         (val, col) => `
                         <td><div class="${
-                          (state.permissions[name].reveal && val === null) ||
-                          state.permissions[name].swap
+                          (state.permissions[name].reveal &&
+                            name === currentName &&
+                            val === null) ||
+                          (state.permissions[name].swap && name === currentName)
                             ? "highlight "
                             : ""
                         }card boardcard${
@@ -90,28 +86,23 @@ function renderState(state: JSONGameState) {
             ? "Partie terminée"
             : state.events[state.events.length - 1][0]
         }
-        <div style='color: #888; font-size: .5em'>${
+        <div style='color: #8b9bb4 ; font-size: .5em; font-weight: 200;'>${
           state.events[state.events.length - 2]?.[0] ?? ""
         }</div>
       </div>
 
         <table>
-        <tr style="font-variant:small-caps;color: #444"><td style="width: 100px;text-align:center;">Pioche</td><td style="width: 100px;text-align:center;">Défausse</td></tr>
         <tr style="height: 130px">
             <td style="width: 100px;">
                 <div class="${
-                  Object.values(state.permissions).some((p) => p.draw)
-                    ? "highlight "
-                    : ""
+                  state.permissions[currentName].draw ? "highlight " : ""
                 }card megacard drawcard unknowncard" style="margin: 0 auto;">
                     ?
                 </div>
             </td>
             <td style="width: 100px;">
                 <div class="${
-                  Object.values(state.permissions).some((p) => p.discard)
-                    ? "highlight "
-                    : ""
+                  state.permissions[currentName].discard ? "highlight " : ""
                 }card megacard discard" style="margin: 0 auto;background: ${cardColor(
     state.discard
   )};">
@@ -119,27 +110,26 @@ function renderState(state: JSONGameState) {
                 </div>
             </td>
         </tr>
+        <tr class="megacardlabel"><td style="width: 100px;text-align:center;">Pioche</td><td style="width: 100px;text-align:center;">Défausse</td></tr>
+
         </table>
 
-        <div style="display: flex; flex-wrap: wrap; margin-bottom: 300px">
+        <div style="display: flex; flex-wrap: wrap;">
 
         ${Object.keys(state.boards)
           .map(
             (name) =>
               `
-            <div style='border-radius: 20px; flex-grow: 1; padding: 15px; margin: 10px; background: ${
+            <div class='${
               !state.scores ||
               state.scores[name] !== Math.min(...Object.values(state.scores))
-                ? `radial-gradient(circle, rgba(130,186,91,${
-                    state.turn === name ? ".9" : "0.5"
-                  }) 0%, rgba(37,134,150,${
-                    state.turn === name ? ".9" : "0.5"
-                  }) 100%)`
-                : `radial-gradient(circle, rgba(255,248,0,1) 0%, rgba(255,162,0,1) 100%)`
-            };'>
-                    <div style="height:50px;font-size: 50px; color: white;">${name}${
+                ? `playerboard${state.turn === name ? " currentturn" : ""}`
+                : `playerboard won`
+            }'>
+                    <div class='playername'>${name}${
                 state.scores[name] ? ` (${state.scores[name]} points) ` : ""
               } 
+              ${currentName === name ? "(You)" : ""}
                 <div class="card" style="display: inline-block;opacity:${
                   state.hands[name] !== null ? "1" : "0"
                 };background: ${cardColor(state.hands[name])}">
@@ -155,42 +145,31 @@ function renderState(state: JSONGameState) {
           .join("")}
 
           </div>
-          <!--<div id='events'>
-          ${[...(state.events ?? [])]
-            .reverse()
-            .map(
-              (e) =>
-                `<div style='width: 300px; padding: 2px; background: rgb(255, 255, ${~~Math.min(
-                  (Date.now() - e[1]) / 10,
-                  255
-                )})'>${e[0]}</div>`
-            )
-            .join("")}
-          </div>-->
         `;
 }
 
 async function sendCardAction(name: string, row: string, col: string) {
   //header ${name}
+  if (name !== JSON.parse(localStorage.getItem(roomId) ?? "{}").name) return;
   await fetch(BASEURL + `/action?action=card&row=${row}&col=${col}`, {
-    headers: { roomid: roomId, userid: name },
+    headers: { roomid: roomId, token: token },
   });
 }
 
 async function sendDrawAction() {
-  await fetch(BASEURL + `/action?action=draw`, { headers: { roomid: roomId } });
+  await fetch(BASEURL + `/action?action=draw`, {
+    headers: { roomid: roomId, token },
+  });
 }
 
 async function sendDiscardAction() {
   await fetch(BASEURL + `/action?action=discard`, {
-    headers: { roomid: roomId },
+    headers: { roomid: roomId, token },
   });
 }
 
-async function newRoom(players: string) {
-  const res = await fetch(
-    BASEURL + `/createroom?players=${encodeURI(players)}`
-  );
+async function newRoom() {
+  const res = await fetch(BASEURL + `/createroom`);
   return res.text();
 }
 
@@ -199,11 +178,9 @@ async function newRoom(players: string) {
 
   document
     .querySelector('#newroom input[type="button"]')!
-    .addEventListener("click", () => {
-      const players = (
-        document.querySelector('#newroom input[type="text"]') as HTMLFormElement
-      ).value;
-      newRoom(players).then((name) => (window.location.href = "/?r=" + name));
+    .addEventListener("click", async () => {
+      const roomid = await newRoom();
+      window.location.href = "lobby.html?r=" + roomid;
     });
 
   while (true) {

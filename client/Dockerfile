@@ -9,7 +9,7 @@ COPY package.json /app
 RUN npm install
 COPY . /app
 
-RUN npx parcel build index.html
+RUN npx parcel build *.html
 
 FROM nginx:1.16.0-alpine
 COPY --from=builder /app/dist/* /usr/share/nginx/html/

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Swapalign</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="//fonts.googleapis.com/css?family=Nunito"
+    />
+  </head>
+
+  <body>
+    <div id="lobby">
+      <h1>Welcome to game room "<span id="gameid"></span>"!</h1>
+      <div style="text-align: justify; margin-top: 10px">
+        The invitation link is this page's address!<br />
+        Just copy it in the address bar or use this QR-Code
+      </div>
+      <div id="playerlist"></div>
+      <form action="#" id="joinform" style="display: none">
+        <input autofocus type="text" placeholder="Your name" />
+        <input type="submit" value="Join" />
+      </form>
+      <input
+        style="display: none; width: 100%"
+        type="button"
+        value="Start game"
+        id="startgame"
+      />
+      <div id="qr"></div>
+    </div>
+    <script type="module" src="src/lobby.ts"></script>
+  </body>
+</html>
